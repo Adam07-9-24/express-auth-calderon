@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#202522">
+    <title><%= title %> | Lab 07</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="<%= requiredRoles ? 'app-page guarded' : 'auth-page' %>">
+<a class="skip-link" href="#main-content">Saltar al contenido</a>
+<% if (requiredRoles) { %>
+<div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Navegación principal">
+        <a href="/dashboard" class="brand" id="brand">
+            <span class="brand-mark" aria-hidden="true">L7</span>
+            <span class="brand-copy">Access Lab<small>Seguridad JWT</small></span>
+        </a>
+        <p class="nav-label">Espacio de trabajo</p>
+        <nav>
+            <ul class="side-nav">
+                <li><a href="/dashboard" class="nav-link" data-path="/dashboard"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Resumen</a></li>
+                <li class="admin-only" hidden><a href="/admin" class="nav-link" data-path="/admin"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7l-8-4Z"/><path d="M9.5 12 11 13.5l3.5-4"/></svg>Administración</a></li>
+                <li><a href="/profile" class="nav-link" data-path="/profile"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>Mi cuenta</a></li>
+            </ul>
+        </nav>
+        <div class="sidebar-foot">
+            <p class="session-note"><span class="session-dot"></span>Sesión protegida</p>
+            <button type="button" class="nav-link logout-button btn-logout"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg>Cerrar sesión</button>
+        </div>
+    </aside>
+    <button class="nav-overlay" id="nav-overlay" type="button" aria-label="Cerrar menú"></button>
+    <div class="app-stage">
+        <header class="mobile-topbar">
+            <a href="/dashboard" class="brand"><span class="brand-mark" aria-hidden="true">L7</span><span class="brand-copy">Access Lab</span></a>
+            <button class="menu-button" id="menu-toggle" type="button" aria-label="Abrir menú" aria-controls="sidebar" aria-expanded="false"><span class="menu-lines"></span></button>
+        </header>
+        <main class="app-main" id="main-content">
+<% } else { %>
+<main class="auth-main" id="main-content">
+<% } %>

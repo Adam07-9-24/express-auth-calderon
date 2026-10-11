@@ -1,0 +1,124 @@
+<%- include('partials/head') %>
+<div class="auth-layout">
+    <section class="auth-story" aria-label="Presentación">
+        <a href="/signIn" class="brand">
+            <span class="brand-mark" aria-hidden="true">L7</span>
+            <span class="brand-copy">Access Lab<small>Seguridad JWT</small></span>
+        </a>
+        <div class="auth-story-copy">
+            <p class="eyebrow">Nueva cuenta</p>
+            <h1>Empieza con una identidad segura.</h1>
+            <p>Crea tu perfil para acceder al dashboard. Los datos solicitados forman parte del ejercicio de gestión de usuarios del laboratorio.</p>
+        </div>
+        <div class="auth-proof" aria-label="Características">
+            <span>Registro protegido</span>
+            <span>Rol de usuario automático</span>
+        </div>
+    </section>
+
+    <section class="auth-panel">
+        <div class="auth-card wide">
+            <div class="auth-heading">
+                <p class="eyebrow">Registro</p>
+                <h2>Crea tu cuenta</h2>
+                <p>Todos los campos marcados con <span class="field-required">*</span> son obligatorios.</p>
+            </div>
+            <div id="form-error" class="alert alert-error" hidden role="alert"></div>
+            <form id="signup-form" class="auth-form" novalidate>
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="name">Nombre <span class="field-required">*</span></label>
+                        <input id="name" type="text" required autocomplete="given-name" placeholder="Tu nombre">
+                    </div>
+                    <div class="field">
+                        <label for="lastName">Apellido <span class="field-required">*</span></label>
+                        <input id="lastName" type="text" required autocomplete="family-name" placeholder="Tu apellido">
+                    </div>
+                    <div class="field">
+                        <label for="phoneNumber">Teléfono <span class="field-required">*</span></label>
+                        <input id="phoneNumber" type="tel" required autocomplete="tel" inputmode="tel" placeholder="987 654 321">
+                    </div>
+                    <div class="field">
+                        <label for="birthdate">Fecha de nacimiento <span class="field-required">*</span></label>
+                        <input id="birthdate" type="date" required autocomplete="bday">
+                    </div>
+                    <div class="field field-full">
+                        <label for="email">Correo electrónico <span class="field-required">*</span></label>
+                        <input id="email" type="email" required autocomplete="username" inputmode="email" placeholder="nombre@correo.com">
+                    </div>
+                    <div class="field field-full">
+                        <label for="password">Contraseña <span class="field-required">*</span></label>
+                        <div class="input-wrap">
+                            <input id="password" type="password" data-password-input required autocomplete="new-password" aria-describedby="password-rules" placeholder="Crea una contraseña segura">
+                            <button class="password-toggle" type="button" data-password-toggle="password" aria-pressed="false">Mostrar</button>
+                        </div>
+                        <ul class="password-rules" id="password-rules" aria-label="Requisitos de contraseña">
+                            <li data-rule="length">8 caracteres</li>
+                            <li data-rule="upper">Una mayúscula</li>
+                            <li data-rule="number">Un número</li>
+                            <li data-rule="special">Un símbolo # $ % & * @</li>
+                        </ul>
+                    </div>
+                </div>
+                <button class="button button-primary button-block" type="submit" id="submit">
+                    <span class="button-spinner" aria-hidden="true"></span>
+                    <span class="button-label">Crear mi cuenta</span>
+                </button>
+            </form>
+            <p class="auth-switch">¿Ya tienes una cuenta? <a href="/signIn">Iniciar sesión</a></p>
+        </div>
+    </section>
+</div>
+<%- include('partials/scripts') %>
+<script>
+    const pw = document.getElementById('password');
+    document.getElementById('birthdate').max = new Date().toISOString().slice(0, 10);
+
+    pw.addEventListener('input', () => {
+        const rules = {
+            length: pw.value.length >= 8,
+            upper: /[A-Z]/.test(pw.value),
+            number: /\d/.test(pw.value),
+            special: /[#$%&*@]/.test(pw.value)
+        };
+        Object.entries(rules).forEach(([rule, met]) => {
+            document.querySelector(`[data-rule="${rule}"]`).classList.toggle('met', met);
+        });
+        pw.setAttribute('aria-invalid', String(pw.value.length > 0 && !PASSWORD_REGEX.test(pw.value)));
+    });
+
+    document.getElementById('signup-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const fields = ['name', 'lastName', 'phoneNumber', 'birthdate', 'email', 'password'];
+        const data = Object.fromEntries(fields.map(f => [f, document.getElementById(f).value.trim()]));
+        const errorBox = document.getElementById('form-error');
+        errorBox.hidden = true;
+
+        fields.forEach(field => document.getElementById(field).setAttribute('aria-invalid', String(!data[field])));
+        if (fields.some(field => !data[field])) {
+            errorBox.textContent = 'Completa todos los campos obligatorios.';
+            errorBox.hidden = false;
+            return;
+        }
+        if (!PASSWORD_REGEX.test(data.password)) {
+            errorBox.textContent = 'La contraseña todavía no cumple todos los requisitos.';
+            errorBox.hidden = false;
+            pw.setAttribute('aria-invalid', 'true');
+            return;
+        }
+
+        const btn = document.getElementById('submit');
+        UI.setButtonLoading(btn, true, 'Creando cuenta…');
+        try {
+            await Auth.api('/api/auth/signUp', { method: 'POST', body: JSON.stringify(data) });
+            UI.toast('Registro exitoso. Ahora inicia sesión.');
+            setTimeout(() => location.href = '/signIn', 1200);
+        } catch (err) {
+            errorBox.textContent = err.message;
+            errorBox.hidden = false;
+            UI.setButtonLoading(btn, false);
+        }
+    });
+</script>
+</body>
+</html>

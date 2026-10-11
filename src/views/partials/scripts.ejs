@@ -1,0 +1,25 @@
+</main>
+<% if (requiredRoles) { %>
+    </div>
+</div>
+<footer class="app-footer">TECSUP · Desarrollo de Aplicaciones Web Avanzado · Laboratorio 07</footer>
+<% } else { %>
+<footer class="auth-footer">TECSUP · Laboratorio 07 · Autenticación segura con JWT</footer>
+<% } %>
+<div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+<script src="/js/auth.js"></script>
+<% if (requiredRoles) { %>
+<script>
+    const session = Auth.guard(<%- JSON.stringify(requiredRoles) %>);
+    if (session) {
+        document.body.classList.remove('guarded');
+        document.getElementById('brand').href = Auth.homeFor(session.roles);
+        if (session.roles.includes('admin')) {
+            document.querySelectorAll('.admin-only').forEach(element => { element.hidden = false; });
+        }
+        document.querySelectorAll('.btn-logout').forEach(button => {
+            button.addEventListener('click', () => Auth.logout());
+        });
+    }
+</script>
+<% } %>

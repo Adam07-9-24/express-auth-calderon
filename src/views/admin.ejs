@@ -1,0 +1,123 @@
+<%- include('partials/head') %>
+<div class="content">
+    <header class="page-header">
+        <div><p class="eyebrow">Vista administrativa</p><h1 class="page-title">Gestión de usuarios</h1><p class="page-subtitle">Consulta las cuentas registradas y revisa sus datos. Las acciones disponibles respetan los permisos actuales de la API.</p></div>
+        <span class="status-badge">Acceso administrador</span>
+    </header>
+    <section class="admin-stats" aria-label="Resumen de usuarios">
+        <article class="surface admin-stat"><div><span class="admin-stat-number" id="stat-total">—</span><span class="admin-stat-label">Usuarios registrados</span></div><span class="stat-marker" aria-hidden="true"></span></article>
+        <article class="surface admin-stat"><div><span class="admin-stat-number" id="stat-admins">—</span><span class="admin-stat-label">Administradores</span></div><span class="stat-marker admin" aria-hidden="true"></span></article>
+        <article class="surface admin-stat"><div><span class="admin-stat-number" id="stat-users">—</span><span class="admin-stat-label">Cuentas estándar</span></div><span class="stat-marker" aria-hidden="true"></span></article>
+    </section>
+    <section class="surface" aria-labelledby="users-title">
+        <div class="surface-header"><div><p class="eyebrow">Directorio</p><h2 id="users-title" style="font-size:1.25rem">Usuarios</h2></div><span class="table-count" id="table-count">Cargando…</span></div>
+        <div class="table-toolbar">
+            <div class="search-wrap"><label for="user-search" class="nav-label" style="display:block;margin:0 0 6px">Buscar en resultados</label><input class="search-input" id="user-search" type="search" placeholder="Nombre, correo o rol" autocomplete="off"></div>
+            <span class="table-count">Consulta de solo lectura</span>
+        </div>
+        <div class="table-wrap">
+            <table class="data-table">
+                <caption style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Listado de usuarios registrados</caption>
+                <thead><tr><th>Usuario</th><th>Teléfono</th><th>Edad</th><th>Roles</th><th>Registro</th><th>Acciones</th></tr></thead>
+                <tbody id="users-body"><tr><td colspan="6" class="table-message">Cargando usuarios…</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<div id="user-modal" class="modal-backdrop" role="presentation" aria-hidden="true">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title">
+        <header class="dialog-header"><h2 id="dialog-title">Detalle del usuario</h2><button type="button" class="dialog-close" id="dialog-close" aria-label="Cerrar detalle">×</button></header>
+        <div class="dialog-body" id="user-detail"></div>
+        <div class="dialog-footer"><button type="button" class="button button-secondary" id="dialog-close-footer">Cerrar</button></div>
+    </section>
+</div>
+<%- include('partials/scripts') %>
+<script>
+    const modal = document.getElementById('user-modal');
+    const closeButton = document.getElementById('dialog-close');
+    let usersCache = [];
+    let triggerBeforeModal = null;
+
+    function openModal() {
+        triggerBeforeModal = document.activeElement;
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        closeButton.focus();
+    }
+
+    function closeModal() {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+        triggerBeforeModal?.focus();
+    }
+
+    closeButton.addEventListener('click', closeModal);
+    document.getElementById('dialog-close-footer').addEventListener('click', closeModal);
+    modal.addEventListener('click', event => { if (event.target === modal) closeModal(); });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+    async function showUser(id) {
+        document.getElementById('user-detail').innerHTML = '<div class="loading-inline"><div class="skeleton skeleton-avatar"></div><div class="skeleton skeleton-line"></div></div>';
+        openModal();
+        try {
+            const user = await Auth.api(`/api/users/${encodeURIComponent(id)}`);
+            const rows = [
+                ['Identificador', user.id], ['Nombre', user.name], ['Apellido', user.lastName], ['Correo electrónico', user.email],
+                ['Teléfono', user.phoneNumber], ['Fecha de nacimiento', UI.date(user.birthdate)],
+                ['Edad', user.age != null ? `${user.age} años` : '—'], ['Dirección', user.address || 'No registrada'],
+                ['Avatar', UI.safeImageUrl(user.url_profile) ? 'URL configurada' : 'Iniciales del usuario'],
+                ['Fecha de registro', UI.date(user.createdAt, true)], ['Última actualización', UI.date(user.updatedAt, true)]
+            ];
+            document.getElementById('user-detail').innerHTML = `
+                <div class="welcome-person" style="margin-bottom:20px">${UI.avatar(user)}<div><h3 style="margin:0 0 8px">${UI.esc(user.name)} ${UI.esc(user.lastName)}</h3><div class="badge-row">${UI.rolesChips(user.roles)}</div></div></div>
+                <dl class="details-grid">${rows.map(([key, value]) => `<div class="detail-item"><dt>${UI.esc(key)}</dt><dd>${UI.esc(value)}</dd></div>`).join('')}</dl>`;
+        } catch (err) {
+            document.getElementById('user-detail').innerHTML = `<div class="alert alert-error" role="alert">${UI.esc(err.message)}</div>`;
+        }
+    }
+
+    function renderUsers(users) {
+        const body = document.getElementById('users-body');
+        document.getElementById('table-count').textContent = `${users.length} ${users.length === 1 ? 'resultado' : 'resultados'}`;
+        if (!users.length) {
+            body.innerHTML = '<tr><td colspan="6" class="table-message">No encontramos usuarios que coincidan con la búsqueda.</td></tr>';
+            return;
+        }
+        body.innerHTML = users.map(user => `
+            <tr>
+                <td><div class="user-cell">${UI.avatar(user, 'avatar-sm')}<div><strong>${UI.esc(user.name)} ${UI.esc(user.lastName)}</strong><small>${UI.esc(user.email)}</small></div></div></td>
+                <td>${UI.esc(user.phoneNumber)}</td><td>${user.age ?? '—'}</td>
+                <td><div class="badge-row">${UI.rolesChips(user.roles)}</div></td><td>${UI.esc(UI.date(user.createdAt))}</td>
+                <td><button class="button button-secondary button-sm btn-view" type="button" data-id="${UI.attr(user.id)}" aria-label="Ver detalle de ${UI.attr(`${user.name ?? ''} ${user.lastName ?? ''}`.trim())}">Ver detalle</button></td>
+            </tr>`).join('');
+        body.querySelectorAll('.btn-view').forEach(button => button.addEventListener('click', () => showUser(button.dataset.id)));
+    }
+
+    document.getElementById('user-search').addEventListener('input', event => {
+        const query = event.target.value.trim().toLocaleLowerCase('es');
+        const filtered = !query ? usersCache : usersCache.filter(user =>
+            [user.name, user.lastName, user.email, user.phoneNumber, ...(user.roles || [])].some(value => String(value ?? '').toLocaleLowerCase('es').includes(query))
+        );
+        renderUsers(filtered);
+    });
+
+    (async () => {
+        if (!session) return;
+        try {
+            usersCache = await Auth.api('/api/users');
+            document.getElementById('stat-total').textContent = usersCache.length;
+            document.getElementById('stat-admins').textContent = usersCache.filter(user => user.roles.includes('admin')).length;
+            document.getElementById('stat-users').textContent = usersCache.filter(user => !user.roles.includes('admin')).length;
+            renderUsers(usersCache);
+        } catch (err) {
+            document.getElementById('table-count').textContent = 'Error de carga';
+            document.getElementById('users-body').innerHTML = `<tr><td colspan="6" class="table-message"><div class="alert alert-error" role="alert">${UI.esc(err.message)}</div></td></tr>`;
+            UI.toast(err.message, false);
+        }
+    })();
+</script>
+</body>
+</html>

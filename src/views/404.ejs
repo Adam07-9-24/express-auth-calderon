@@ -1,0 +1,17 @@
+<%- include('partials/head') %>
+<div class="error-shell">
+    <section class="surface error-card">
+        <a href="/signIn" class="brand" style="justify-content:center;margin:0 0 40px;color:var(--color-graphite)"><span class="brand-mark" aria-hidden="true">L7</span><span class="brand-copy">Access Lab</span></a>
+        <div class="error-code">404</div>
+        <h1>No encontramos esa página</h1>
+        <p>Es posible que el enlace haya cambiado o que la dirección no sea correcta. Regresa a una sección disponible.</p>
+        <a href="/signIn" id="back" class="button button-primary">Ir al inicio</a>
+    </section>
+</div>
+<%- include('partials/scripts') %>
+<script>
+    const current = Auth.payload();
+    document.getElementById('back').href = current && !Auth.isExpired(current) ? Auth.homeFor(current.roles) : '/signIn';
+</script>
+</body>
+</html>

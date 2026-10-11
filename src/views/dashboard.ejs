@@ -1,0 +1,88 @@
+<%- include('partials/head') %>
+<div class="content">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Resumen de cuenta</p>
+            <h1 class="page-title">Dashboard</h1>
+            <p class="page-subtitle">Una vista clara de tu perfil y estado de acceso.</p>
+        </div>
+        <span class="status-badge">Cuenta activa</span>
+    </header>
+
+    <section class="surface welcome-card" id="welcome" aria-live="polite">
+        <div class="loading-inline">
+            <div class="skeleton skeleton-avatar"></div>
+            <div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short" style="margin-top:12px"></div></div>
+        </div>
+    </section>
+
+    <section class="summary-grid" aria-label="Resumen del perfil">
+        <article class="surface summary-card">
+            <span class="summary-label">Edad registrada</span>
+            <strong class="summary-value" id="stat-age">—</strong>
+            <span class="summary-detail">Calculada desde tu fecha de nacimiento</span>
+        </article>
+        <article class="surface summary-card">
+            <span class="summary-label">Nivel de acceso</span>
+            <strong class="summary-value" id="stat-role">—</strong>
+            <span class="summary-detail">Según tus roles actuales</span>
+        </article>
+        <article class="surface summary-card">
+            <span class="summary-label">Miembro desde</span>
+            <strong class="summary-value" id="stat-since">—</strong>
+            <span class="summary-detail">Fecha de creación de la cuenta</span>
+        </article>
+    </section>
+
+    <section class="surface" aria-labelledby="details-title">
+        <div class="surface-header">
+            <div>
+                <p class="eyebrow">Información personal</p>
+                <h2 id="details-title" style="font-size:1.25rem">Datos de tu cuenta</h2>
+            </div>
+            <a href="/profile" class="button button-secondary button-sm">Editar perfil</a>
+        </div>
+        <div class="surface-body">
+            <dl class="details-grid" id="data-list">
+                <div class="detail-item"><dt>Estado</dt><dd>Cargando información…</dd></div>
+            </dl>
+        </div>
+    </section>
+</div>
+<%- include('partials/scripts') %>
+<script>
+    (async () => {
+        if (!session) return;
+        try {
+            const me = await Auth.api('/api/users/me');
+            document.getElementById('welcome').innerHTML = `
+                <div class="welcome-person">
+                    ${UI.avatar(me)}
+                    <div>
+                        <p class="eyebrow" style="color:#72d0a5">Sesión iniciada</p>
+                        <h1>Hola, ${UI.esc(me.name)} ${UI.esc(me.lastName)}</h1>
+                        <p>Tu información de cuenta está disponible y protegida.</p>
+                        <div class="badge-row">${UI.rolesChips(me.roles)}</div>
+                    </div>
+                </div>
+                <a href="/profile" class="button button-secondary welcome-action">Gestionar mi cuenta</a>`;
+            document.getElementById('stat-age').textContent = me.age != null ? `${me.age} años` : '—';
+            document.getElementById('stat-role').textContent = me.roles.includes('admin') ? 'Administrador' : 'Usuario';
+            document.getElementById('stat-since').textContent = UI.date(me.createdAt);
+
+            const rows = [
+                ['Nombre completo', `${me.name ?? ''} ${me.lastName ?? ''}`.trim()], ['Correo electrónico', me.email],
+                ['Teléfono', me.phoneNumber], ['Fecha de nacimiento', UI.date(me.birthdate)],
+                ['Dirección', me.address || 'No registrada'],
+                ['Avatar', UI.safeImageUrl(me.url_profile) ? 'URL configurada' : 'Iniciales del usuario']
+            ];
+            document.getElementById('data-list').innerHTML = rows
+                .map(([key, value]) => `<div class="detail-item"><dt>${UI.esc(key)}</dt><dd>${UI.esc(value)}</dd></div>`).join('');
+        } catch (err) {
+            document.getElementById('welcome').innerHTML = `<div class="alert alert-error" role="alert">${UI.esc(err.message)}</div>`;
+            UI.toast(err.message, false);
+        }
+    })();
+</script>
+</body>
+</html>

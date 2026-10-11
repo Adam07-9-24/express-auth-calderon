@@ -1,0 +1,156 @@
+<%- include('partials/head') %>
+<div class="content">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Configuración</p>
+            <h1 class="page-title">Mi cuenta</h1>
+            <p class="page-subtitle">Mantén actualizados tus datos personales y credenciales de acceso.</p>
+        </div>
+    </header>
+
+    <div class="profile-layout">
+        <aside class="surface profile-summary" id="profile-summary" aria-live="polite">
+            <div class="skeleton skeleton-avatar" style="margin:0 auto 20px"></div>
+            <div class="skeleton skeleton-line" style="margin:0 auto 12px"></div>
+            <div class="skeleton skeleton-line short" style="margin:0 auto"></div>
+        </aside>
+
+        <section class="surface">
+            <form id="profile-form" class="surface-body" novalidate>
+                <div id="form-message" class="alert" hidden role="status"></div>
+
+                <section class="form-section" aria-labelledby="personal-title">
+                    <div class="form-section-title">
+                        <h3 id="personal-title">Datos personales</h3>
+                        <p>Información básica que identifica tu cuenta.</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="field"><label for="name">Nombre <span class="field-required">*</span></label><input id="name" type="text" required autocomplete="given-name"></div>
+                        <div class="field"><label for="lastName">Apellido <span class="field-required">*</span></label><input id="lastName" type="text" required autocomplete="family-name"></div>
+                        <div class="field"><label for="birthdate">Fecha de nacimiento <span class="field-required">*</span></label><input id="birthdate" type="date" required autocomplete="bday"><p class="field-help" id="age-help"></p></div>
+                        <div class="field"><label for="address">Dirección</label><input id="address" type="text" autocomplete="street-address" placeholder="Dirección opcional"></div>
+                    </div>
+                </section>
+
+                <section class="form-section" aria-labelledby="contact-title">
+                    <div class="form-section-title">
+                        <h3 id="contact-title">Información de contacto</h3>
+                        <p>Datos utilizados para identificarte y mantener tu perfil completo.</p>
+                    </div>
+                    <div class="form-grid">
+                        <div class="field"><label for="email">Correo electrónico <span class="field-required">*</span></label><input id="email" type="email" required autocomplete="email" inputmode="email"></div>
+                        <div class="field"><label for="phoneNumber">Teléfono <span class="field-required">*</span></label><input id="phoneNumber" type="tel" required autocomplete="tel" inputmode="tel"></div>
+                    </div>
+                </section>
+
+                <section class="form-section" aria-labelledby="avatar-title">
+                    <div class="form-section-title">
+                        <h3 id="avatar-title">Avatar</h3>
+                        <p>Utiliza una dirección web segura con protocolo HTTPS o HTTP.</p>
+                    </div>
+                    <div class="field"><label for="url_profile">URL de imagen</label><input id="url_profile" type="url" placeholder="https://ejemplo.com/avatar.jpg" aria-describedby="avatar-help"><p class="field-help" id="avatar-help">Si se deja vacío, mostraremos tus iniciales.</p></div>
+                </section>
+
+                <section class="form-section" aria-labelledby="security-title">
+                    <div class="form-section-title">
+                        <h3 id="security-title">Contraseña</h3>
+                        <p>Déjala vacía si no quieres cambiar tu contraseña actual.</p>
+                    </div>
+                    <div class="field">
+                        <label for="password">Nueva contraseña</label>
+                        <div class="input-wrap"><input id="password" type="password" data-password-input autocomplete="new-password" placeholder="Nueva contraseña opcional"><button class="password-toggle" type="button" data-password-toggle="password" aria-pressed="false">Mostrar</button></div>
+                        <p class="field-help">Mínimo 8 caracteres, una mayúscula, un número y un símbolo (# $ % & * @).</p>
+                    </div>
+                </section>
+
+                <div class="form-actions">
+                    <a href="/dashboard" class="button button-secondary">Cancelar</a>
+                    <button class="button button-primary" type="submit" id="submit"><span class="button-spinner" aria-hidden="true"></span><span class="button-label">Guardar cambios</span></button>
+                </div>
+            </form>
+        </section>
+    </div>
+</div>
+<%- include('partials/scripts') %>
+<script>
+    const FIELDS = ['name', 'lastName', 'email', 'phoneNumber', 'birthdate', 'address', 'url_profile'];
+    document.getElementById('birthdate').max = new Date().toISOString().slice(0, 10);
+
+    function render(me) {
+        document.getElementById('profile-summary').innerHTML = `
+            ${UI.avatar(me)}
+            <h2>${UI.esc(me.name)} ${UI.esc(me.lastName)}</h2>
+            <p>${UI.esc(me.email)}</p>
+            <p>${me.age != null ? `${UI.esc(me.age)} años` : 'Edad no disponible'} · Miembro desde ${UI.esc(UI.date(me.createdAt))}</p>
+            <div class="badge-row">${UI.rolesChips(me.roles)}</div>`;
+        FIELDS.forEach(f => {
+            const value = me[f] ?? '';
+            document.getElementById(f).value = f === 'birthdate' && value ? value.slice(0, 10) : value;
+        });
+        document.getElementById('age-help').textContent = me.age != null ? `Edad calculada: ${me.age} años` : '';
+        document.getElementById('password').value = '';
+    }
+
+    (async () => {
+        if (!session) return;
+        try {
+            render(await Auth.api('/api/users/me'));
+        } catch (err) {
+            UI.toast(err.message, false);
+        }
+    })();
+
+    document.getElementById('profile-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = Object.fromEntries(FIELDS.map(f => [f, document.getElementById(f).value.trim()]));
+        const message = document.getElementById('form-message');
+        const required = ['name', 'lastName', 'email', 'phoneNumber', 'birthdate'];
+        message.hidden = true;
+        required.forEach(field => document.getElementById(field).setAttribute('aria-invalid', String(!data[field])));
+        if (required.some(field => !data[field])) {
+            message.className = 'alert alert-error';
+            message.textContent = 'Completa todos los campos obligatorios.';
+            message.hidden = false;
+            return;
+        }
+
+        if (data.url_profile && !UI.safeImageUrl(data.url_profile)) {
+            const input = document.getElementById('url_profile');
+            input.setAttribute('aria-invalid', 'true');
+            message.className = 'alert alert-error';
+            message.textContent = 'La URL del avatar debe comenzar con http:// o https://.';
+            message.hidden = false;
+            return;
+        }
+        document.getElementById('url_profile').setAttribute('aria-invalid', 'false');
+
+        const password = document.getElementById('password').value;
+        if (password) {
+            if (!PASSWORD_REGEX.test(password)) {
+                message.className = 'alert alert-error';
+                message.textContent = 'La nueva contraseña no cumple los requisitos indicados.';
+                message.hidden = false;
+                return;
+            }
+            data.password = password;
+        }
+
+        const btn = document.getElementById('submit');
+        UI.setButtonLoading(btn, true, 'Guardando…');
+        try {
+            render(await Auth.api('/api/users/me', { method: 'PUT', body: JSON.stringify(data) }));
+            message.className = 'alert alert-success';
+            message.textContent = 'Tus datos se actualizaron correctamente.';
+            message.hidden = false;
+            UI.toast('Datos actualizados correctamente');
+        } catch (err) {
+            message.className = 'alert alert-error';
+            message.textContent = err.message;
+            message.hidden = false;
+        } finally {
+            UI.setButtonLoading(btn, false);
+        }
+    });
+</script>
+</body>
+</html>
