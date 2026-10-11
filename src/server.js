@@ -10,7 +10,6 @@ import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/users.routes.js";
 import webRoutes from "./routes/web.routes.js";
 import seedRoles from "./utils/seedRoles.js";
-import seedUsers from "./utils/seedUsers.js";
 
 // Cargar variables de entorno
 dotenv.config();
@@ -84,9 +83,8 @@ mongoose
   .then(async () => {
     console.log("Mongo connected");
 
-    // Inicializar roles y usuarios de prueba
+    // Inicializar únicamente los roles necesarios para la autorización
     await seedRoles();
-    await seedUsers();
 
     // Iniciar servidor web
     app.listen(PORT, () => {
